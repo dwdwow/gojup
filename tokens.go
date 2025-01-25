@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/time/rate"
+	"github.com/dwdwow/golimiter"
 )
 
 const TOKENS_BASE_URL = "https://tokens.jup.ag"
@@ -53,16 +53,13 @@ const (
 	TagPump TokenTag = "pump"
 )
 
-var tokensLimiter = rate.NewLimiter(rate.Every(time.Minute), 30)
+var tokensLimiter = golimiter.NewReqLimiter(time.Minute, 30)
 
 func GetTokensByTags(tags ...TokenTag) ([]Token, error) {
 	if !tokensLimiter.Allow() {
 		return nil, fmt.Errorf("jupiter: rate limit exceeded")
 	}
-	err := tokensLimiter.Wait(context.Background())
-	if err != nil {
-		return nil, fmt.Errorf("jupiter: rate limit exceeded")
-	}
+	tokensLimiter.Wait(context.Background())
 	tagStrs := make([]string, len(tags))
 	for i, tag := range tags {
 		tagStrs[i] = string(tag)
@@ -84,10 +81,7 @@ func GetTokenByMint(mint string) (Token, error) {
 	if !tokensLimiter.Allow() {
 		return Token{}, fmt.Errorf("jupiter: rate limit exceeded")
 	}
-	err := tokensLimiter.Wait(context.Background())
-	if err != nil {
-		return Token{}, fmt.Errorf("jupiter: rate limit exceeded")
-	}
+	tokensLimiter.Wait(context.Background())
 	url := fmt.Sprintf("%s/token/%s", TOKENS_BASE_URL, mint)
 	body, err := simpleGet(url)
 	if err != nil {
@@ -104,10 +98,7 @@ func GetTradableTokens() ([]Token, error) {
 	if !tokensLimiter.Allow() {
 		return nil, fmt.Errorf("jupiter: rate limit exceeded")
 	}
-	err := tokensLimiter.Wait(context.Background())
-	if err != nil {
-		return nil, fmt.Errorf("jupiter: rate limit exceeded")
-	}
+	tokensLimiter.Wait(context.Background())
 	url := fmt.Sprintf("%s/tokens_with_markets", TOKENS_BASE_URL)
 	body, err := simpleGet(url)
 	if err != nil {
